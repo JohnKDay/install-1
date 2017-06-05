@@ -10,7 +10,7 @@ script:
 
 deploy:
   provider: releases
-#  api_key: "GITHUB OAUTH TOKEN"
+  api_key: D4CUzEfGqqKvLcL6imVy7VwGXhHhDjj0VSwKUTAXYl+2F3qWMCVR8/LquMPbXk+ICPpIYMtLVZn+OoaPY/3c7S4yaN3CIiTPA8ppWFy3vnDETIyBhat0Yc3ogKfMMm15b/p8+O+Hv5pSSa7rw3Qm+zWVFX0+4zqfcZ3xnTO+ZZrsPr2NkoriNPMRU9JInorfSXLdyZr/ZHvEg6+2Nt5UNFyzB+ZL4+J+RMktKV5XDAhO+FAb/WxvN7anAD4UzL6Qv8tGSw6tIJLS1Zc7z/rP3UmodK8f8XVE0wmQNAxghdR13PQYv6mnuX2ZCDHumgjSUL75jE2wmPdvCXI4WGh4SDpzFtZF6uQIht8kgQg6+K9pH5Ulg1m+358bEsMjZi/NvO+kFYuKdm0LeKZ9Qt8oRZS8KpFbsjNzaJQhU2fAd9rF4Q1yYCpzVMLEKwapk2Jyxvp+tTGsZ4hByPWCl604b6Wyw6QhvePM4+tf9WY/CtXXi6ors/jRLocUXOuSqNtTcAeYjZ6RPLZ71v68SpKLOV773sJxizwv7WNX0hk0rw3mFjm8qRT/Yf4OA1hT0k+HySXG5OGMYhxOaSTJwc5oR+7EiRehQPrvzURcp2+uOTihpcI0RX+66BYS/j1QjgMNVgQhJS5zpoSEdjwwrSxf/jzZ6P64l96az6y/XYFtW1Q=
   file: "releases/contiv-[0-9]*tgz"
   skip_cleanup: true
   on:
