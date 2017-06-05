@@ -13,9 +13,9 @@ if [ "$TRAVIS_BRANCH" = "$BRANCH" ]; then
       git config --global user.email "travis@travis-ci.org"
       git config --global user.name "Travis"
 
-      GIT_KEY="tb"-$(git rev-parse HEAD | cut -c -7)
+      GIT_KEY=$(git rev-parse HEAD | cut -c -7)
       # Add tag and push to master.
-      git tag -a "tb-"${GIT_KEY} -m "Travis build $TRAVIS_BUILD_NUMBER pushed a tag."
+      git tag -a "travis build - "${GIT_KEY} -m "Travis build $TRAVIS_BUILD_NUMBER pushed a tag."
       git push origin --tags
       git fetch origin
 
