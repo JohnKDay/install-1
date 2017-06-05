@@ -11,5 +11,3 @@ deploy:
   file_glob: true
   file: releases/contiv-[0-9]*tgz
   skip_cleanup: true
-  on:
-    repo: JohnKDay/install-1
