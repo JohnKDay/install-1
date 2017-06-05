@@ -1,18 +1,14 @@
 language: bash
-
 sudo: required
-
 services:
-  - docker
-
+- docker
 script:
-    - bash scripts/build_push.sh
-
+- bash scripts/build_push.sh
 deploy:
   provider: releases
-  api_key: D4CUzEfGqqKvLcL6imVy7VwGXhHhDjj0VSwKUTAXYl+2F3qWMCVR8/LquMPbXk+ICPpIYMtLVZn+OoaPY/3c7S4yaN3CIiTPA8ppWFy3vnDETIyBhat0Yc3ogKfMMm15b/p8+O+Hv5pSSa7rw3Qm+zWVFX0+4zqfcZ3xnTO+ZZrsPr2NkoriNPMRU9JInorfSXLdyZr/ZHvEg6+2Nt5UNFyzB+ZL4+J+RMktKV5XDAhO+FAb/WxvN7anAD4UzL6Qv8tGSw6tIJLS1Zc7z/rP3UmodK8f8XVE0wmQNAxghdR13PQYv6mnuX2ZCDHumgjSUL75jE2wmPdvCXI4WGh4SDpzFtZF6uQIht8kgQg6+K9pH5Ulg1m+358bEsMjZi/NvO+kFYuKdm0LeKZ9Qt8oRZS8KpFbsjNzaJQhU2fAd9rF4Q1yYCpzVMLEKwapk2Jyxvp+tTGsZ4hByPWCl604b6Wyw6QhvePM4+tf9WY/CtXXi6ors/jRLocUXOuSqNtTcAeYjZ6RPLZ71v68SpKLOV773sJxizwv7WNX0hk0rw3mFjm8qRT/Yf4OA1hT0k+HySXG5OGMYhxOaSTJwc5oR+7EiRehQPrvzURcp2+uOTihpcI0RX+66BYS/j1QjgMNVgQhJS5zpoSEdjwwrSxf/jzZ6P64l96az6y/XYFtW1Q=
-  file: "releases/contiv-[0-9]*tgz"
-  skip_cleanup: true
+  api_key:
+    secure: SXy43mSz/GdzVJUIWn1U1wT9SAVzHbzsulifILd73mx/8bI3EyRJixVUjbqCD2xDWbxexnu/stKjuAgTeVWqgBIZNANBObw/I6fc47rolvw/JMsUb/RDpWifWqDPOaNBj1F/sXHyoiPXPU1XHiZCnqnV8N9QG+0Ofx67s5SnJ4BzzfEXiSY5dyqgxDEXC41Rw6xWgS6vMviYDBZmVQj1hNiMHkY5AlT52mrcVnfDOlL2gR7o801iaj2J+422rkiU6iOo2uMBU+Xd/U2jvbjvUgc2U5r+r4AEygquKaUhODa/msn9lVGddH76w2tsyiCDUXxFsB7c3ONVXvSIoWXTrijVrQ4gLwds04XudwXmPn7tH4J/HdMmshQkNOOTT0EacBDepLi4jwHnlF5YvnAitK+HALtZHC5+H3riBKtmjrXPj88gn4vSuRy+YWz5j5EqE4UrGaO4dxZlhCbxoT6v+8DmSJDwn8OkjUd4rDABz325JDOA0vGship2p3w42xHmlR3o7Y1j8ksrQ9brjP2w2giJumiS4a+I/AEfCiSLaxmm6smMk701U2ruwzYXbcSeoV/s6jtKMSNnLcDuQSMpgE1/0cfDlMtlvUegJGySkSbqiJ7XEgLiWMn6q2/5liquw/QUxYBpEjzFI8xSImsCTCcZWwbDQDHV+RC4TvYt43g=
+  file: releases/contiv-[0-9]*tgz
   on:
+    repo: JohnKDay/install-1
     master: true
-
