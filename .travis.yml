@@ -8,7 +8,8 @@ deploy:
   provider: releases
   api_key:
     secure: SXy43mSz/GdzVJUIWn1U1wT9SAVzHbzsulifILd73mx/8bI3EyRJixVUjbqCD2xDWbxexnu/stKjuAgTeVWqgBIZNANBObw/I6fc47rolvw/JMsUb/RDpWifWqDPOaNBj1F/sXHyoiPXPU1XHiZCnqnV8N9QG+0Ofx67s5SnJ4BzzfEXiSY5dyqgxDEXC41Rw6xWgS6vMviYDBZmVQj1hNiMHkY5AlT52mrcVnfDOlL2gR7o801iaj2J+422rkiU6iOo2uMBU+Xd/U2jvbjvUgc2U5r+r4AEygquKaUhODa/msn9lVGddH76w2tsyiCDUXxFsB7c3ONVXvSIoWXTrijVrQ4gLwds04XudwXmPn7tH4J/HdMmshQkNOOTT0EacBDepLi4jwHnlF5YvnAitK+HALtZHC5+H3riBKtmjrXPj88gn4vSuRy+YWz5j5EqE4UrGaO4dxZlhCbxoT6v+8DmSJDwn8OkjUd4rDABz325JDOA0vGship2p3w42xHmlR3o7Y1j8ksrQ9brjP2w2giJumiS4a+I/AEfCiSLaxmm6smMk701U2ruwzYXbcSeoV/s6jtKMSNnLcDuQSMpgE1/0cfDlMtlvUegJGySkSbqiJ7XEgLiWMn6q2/5liquw/QUxYBpEjzFI8xSImsCTCcZWwbDQDHV+RC4TvYt43g=
-  file: releases/contiv*tgz
+  file_glob: true
+  file: releases/contiv-[0-9]*tgz
   skip_cleanup: true
   on:
     repo: JohnKDay/install-1
