@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set -euo pipefail
-set -vx
 
 # ensure this script wasn't called from the directory where this script
 # lives; it should be called from the repository's top level
