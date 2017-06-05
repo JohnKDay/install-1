@@ -15,7 +15,7 @@ if [ "$TRAVIS_BRANCH" = "$BRANCH" ]; then
 
       GIT_KEY=$(git rev-parse HEAD | cut -c -7)
       # Add tag and push to master.
-      git tag -a "travis build - "${GIT_KEY} -m "Travis build $TRAVIS_BUILD_NUMBER pushed a tag."
+      git tag -a "travis_build-"${GIT_KEY} -m "Travis build $TRAVIS_BUILD_NUMBER pushed a tag."
       git push origin --tags
       git fetch origin
 
