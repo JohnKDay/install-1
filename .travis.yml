@@ -4,6 +4,8 @@ services:
 - docker
 script:
 - bash scripts/build_push.sh
+after_success:
+- sh scripts/set_tags.sh
 deploy:
   provider: releases
   api_key:
@@ -12,4 +14,5 @@ deploy:
   file: releases/*
   skip_cleanup: true
   on:
-    all_branches: true
+    branch: master
+    repo: JohnKDay/install-1
