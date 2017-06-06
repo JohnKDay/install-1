@@ -12,6 +12,7 @@ fi
 
 DEV_IMAGE_NAME="devbuild"
 #VERSION=${BUILD_VERSION-$DEV_IMAGE_NAME}
+
 contiv_version=$(scripts/get_latest_release.sh)
 VERSION=${contiv_version}-$(git rev-parse HEAD | cut -c -7)
 
