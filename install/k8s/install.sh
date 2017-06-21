@@ -223,9 +223,10 @@ fi
 
 $kubectl create secret generic aci.key --from-file=$aci_key -n kube-system
 
+mkdir -p /var/contiv
+
 if [ "$tls_cert" = "" ]; then
 	echo "Generating local certs for Contiv Proxy"
-	mkdir -p /var/contiv
 	mkdir -p ./local_certs
 
 	chmod +x ./install/generate-certificate.sh
@@ -286,7 +287,7 @@ echo "========================================================="
 echo " "
 echo "Contiv UI is available at https://$netmaster:10000"
 echo "Please use the first run wizard or configure the setup as follows:"
-echo " Configure forwarding mode (optional, default is bridge)."
+echo " Configure forwarding mode (optional, default is routing)."
 echo " netctl global set --fwd-mode routing"
 echo " Configure ACI mode (optional)"
 echo " netctl global set --fabric-mode aci --vlan-range <start>-<end>"

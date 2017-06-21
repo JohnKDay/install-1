@@ -14,49 +14,81 @@ build:
 ansible-image:
 	@bash ./scripts/build_image.sh
 
-# Brings up a demo cluster to install Contiv on - by default this is a docker, centos cluster.
-# It can be configured to start a RHEL cluster by setting CONTIV_NODE_OS=rhel7.
-# It can be started with k8s kubeadm install by running with CONTIV_KUBEADM=1.
-cluster: cluster-destroy
-	cd cluster && vagrant up
+# Brings up a demo cluster to install Contiv on with docker, centos.
+cluster-legacy-swarm: vagrant-clean
+	cd cluster && \
+	vagrant up legacy-swarm-master && \
+	vagrant up legacy-swarm-worker0
 
-cluster-destroy:
-	cd cluster && vagrant destroy -f
+# Brings up a demo cluster to install Contiv on with swarm, centos.
+cluster-swarm-mode: vagrant-clean	
+	cd cluster && \
+	vagrant up swarm-mode-master && \
+	vagrant up swarm-mode-worker0
 
-# demo-k8s brings up a cluster with k8s, runs the installer on it, and shows the URL
+# Brings up a demo cluster to install Contiv on with kubeadm, centos.
+cluster-kubeadm: vagrant-clean
+	cd cluster && \
+	vagrant up kubeadm-master && \
+	vagrant up kubeadm-worker0
+
+cluster-destroy: vagrant-clean
+
+# demo-swarm-mode brings up a cluster with native docker swarm, runs the installer on it, and shows the URL
 # of the demo Contiv Admin Console which was set up
 # BUILD_VERSION must be setup to use a specific build, e.g.
 # export BUILD_VERSION=1.0.0-beta.3
-# Or run make as BUILD_VERSION=1.0.0-beta.3 make demo-k8s
-demo-k8s:
-	BUILD_VERSION=$(rel_ver) CONTIV_KUBEADM=1 make cluster
-	BUILD_VERSION=$(rel_ver) CONTIV_KUBEADM=1 make install-test-kubeadm
+# Or run make as BUILD_VERSION=1.0.0-beta.3 make demo-swarm-mode
+demo-swarm-mode:
+	BUILD_VERSION=$(rel_ver) make cluster-swarm-mode
+	BUILD_VERSION=$(rel_ver) make install-test-swarm-mode
+
+# demo-kubeadm brings up a cluster with kubeadm, runs the installer on it, and shows the URL
+# of the demo Contiv Admin Console which was set up
+# BUILD_VERSION must be setup to use a specific build, e.g.
+# export BUILD_VERSION=1.0.0-beta.3
+# Or run make as BUILD_VERSION=1.0.0-beta.3 make demo-kubeadm
+demo-kubeadm:
+	BUILD_VERSION=$(rel_ver) make cluster-kubeadm
+	BUILD_VERSION=$(rel_ver) make install-test-kubeadm
 
 # demo-swarm brings up a cluster with docker swarm, runs the installer on it, and shows the URL
 # of the demo Contiv Admin Console which was set up
 # BUILD_VERSION must be setup to use a specific build, e.g.
 # export BUILD_VERSION=1.0.0-beta.3
 # Or run make as BUILD_VERSION=1.0.0-beta.3 make demo-k8s
-demo-swarm:
-	BUILD_VERSION=$(rel_ver) make cluster
-	BUILD_VERSION=$(rel_ver) make install-test-swarm
+demo-legacy-swarm:
+	BUILD_VERSION=$(rel_ver) make cluster-legacy-swarm
+	BUILD_VERSION=$(rel_ver) make install-test-legacy-swarm
+
+vagrant-clean:
+	cd cluster && vagrant destroy -f
+	@bash ./scripts/vbcleanup.sh
+	
+# Create a build and test the release installation on a vagrant cluster
+# TODO: The vagrant part of this can be optimized by taking snapshots instead
+# of creating a new set of VMs for each case
+release-test-swarm-mode: build
+	# Test swarm-mode (centos by default)
+	make cluster-swarm-mode
+	make install-test-swarm-mode
 
 # Create a build and test the release installation on a vagrant cluster
 # TODO: The vagrant part of this can be optimized by taking snapshots instead
 # of creating a new set of VMs for each case
 release-test-kubeadm: build
 	# Test kubeadm (centos by default)
-	CONTIV_KUBEADM=1 make cluster
-	CONTIV_KUBEADM=1 make install-test-kubeadm
+	make cluster-kubeadm
+	make install-test-kubeadm
 
-release-test-swarm: build
-	# Test swarm (centos by default)
-	make cluster
-	make install-test-swarm
+release-test-legacy-swarm: build
+	# Test docker + swarm (centos by default)
+	make cluster-legacy-swarm
+	make install-test-legacy-swarm
 
 release-test-kubelegacy: build
 	# Test k8s ansible (centos by default)
-	make cluster
+	make cluster-kubeadm
 	make install-test-kube-legacy 
 
 # shfmt reformats all shell scripts in this repo
@@ -68,18 +100,21 @@ shfmt:
 # setups where the cluster is created using non-vagrant mechanisms. 
 # Clusters need to have k8s installed for kubernetes kubeadm based mechanism and
 # docker installed on the master node for all others.
+install-test-swarm-mode:
+	@bash ./scripts/swarm_mode_test.sh
+
 install-test-kubeadm:
 	@bash ./scripts/kubeadm_test.sh
 
 install-test-kube-legacy:
 	@bash ./scripts/kube_legacy_test.sh
 
-install-test-swarm:
-	@bash ./scripts/swarm_test.sh
+install-test-legacy-swarm:
+	@bash ./scripts/legacy_swarm_test.sh
 
 # ci does everything necessary for a Github PR-triggered CI run.
 # currently, this means building a container image and running
 # all of the available tests.
-ci: build install-test-swarm install-test-kubeadm
+ci: release-test-swarm-mode release-test-kubeadm release-test-legacy-swarm
 
-.PHONY: all build cluster cluster-destroy release-test-swarm release-test-kubeadm release-test-kubelegacy install-test-swarm install-test-kubeadm install-test-kube-legacy
+.PHONY: all build cluster cluster-destroy release-test-legacy-swarm release-test-swarm-mode release-test-kubeadm release-test-kubelegacy install-test-legacy-swarm install-test-swarm-mode install-test-kubeadm install-test-kube-legacy
