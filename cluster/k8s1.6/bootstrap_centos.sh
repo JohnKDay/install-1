@@ -18,7 +18,7 @@ EOF
 
 setenforce 0
 
-yum install -y docker kubelet kubeadm kubectl kubernetes-cni ntp
+yum install -y docker kubelet-1.6.5-0 kubeadm-1.6.5 kubectl-1.6.5-0 kubernetes-cni-0.5.1 ntp
 
 systemctl enable docker && systemctl start docker
 systemctl enable kubelet && systemctl start kubelet
@@ -30,5 +30,9 @@ fi
 if systemctl -q is-enabled firewalld; then
 	systemctl disable firewalld
 fi
+
+systemctl stop ntpd
+ntpdate 1.ntp.esl.cisco.com || ntpdate pool.ntp.org
+systemctl start ntpd
 
 exit 0

@@ -1,5 +1,4 @@
 ---
-
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
@@ -12,7 +11,9 @@ subjects:
 - kind: ServiceAccount
   name: contiv-netplugin
   namespace: kube-system
+
 ---
+
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
@@ -20,24 +21,31 @@ metadata:
   namespace: kube-system
 rules:
   - apiGroups:
-      - ""
+    - ""
+    - extensions
     resources:
-      - pods
-    verbs:
-      - get
-  - apiGroups:
-      - ""
-    resources:
-      - services
       - endpoints
+      - nodes
+      - namespaces
+      - networkpolicies
+      - pods
+      - services
     verbs:
       - watch
+      - list
+      - update
+      - get
+
 ---
+
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: contiv-netplugin
   namespace: kube-system
+  labels:
+    kubernetes.io/cluster-service: "true"
+
 ---
 
 apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -52,7 +60,9 @@ subjects:
 - kind: ServiceAccount
   name: contiv-netmaster
   namespace: kube-system
+
 ---
+
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
@@ -71,12 +81,16 @@ rules:
       - watch
       - list
       - update
+
 ---
+
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: contiv-netmaster
   namespace: kube-system
+  labels:
+    kubernetes.io/cluster-service: "true"
 
 ---
 
@@ -89,18 +103,21 @@ metadata:
   name: contiv-config
   namespace: kube-system
 data:
+  contiv_mode: kubernetes
+  contiv_fwdmode: routing
+  contiv_netmode: vxlan
   # The location of your cluster store. This is set to the
   # avdertise-client value below from the contiv-etcd service.
   # Change it to an external etcd/consul instance if required.
-  cluster_store: "etcd://__NETMASTER_IP__:6666"
+  contiv_etcd: "http://__NETMASTER_IP__:6666"
   # The CNI network configuration to install on each node.
-  cni_config: |-
+  contiv_cni_config: |-
     {
-      "cniVersion": "0.1.0",
+      "cniVersion": "0.6.0",
       "name": "contiv-net",
       "type": "contivk8s"
     }
-  config: |-
+  contiv_k8s_config: |-
     {
        "K8S_API_SERVER": "https://__NETMASTER_IP__:6443",
        "K8S_CA": "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
@@ -109,6 +126,7 @@ data:
        "K8S_TOKEN": "",
        "SVC_SUBNET": "10.96.0.0/12"
     }
+
 ---
 
 # This manifest installs contiv-netplugin container, as well
@@ -130,6 +148,8 @@ spec:
       labels:
         k8s-app: contiv-netplugin
       annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9004'
         scheduler.alpha.kubernetes.io/critical-pod: ''
     spec:
       hostNetwork: true
@@ -139,36 +159,55 @@ spec:
         effect: NoSchedule
       serviceAccountName: contiv-netplugin
       containers:
-        # Runs netplugin container on each Kubernetes node.  This
-        # container programs network policy and routes on each
-        # host.
-        - name: contiv-netplugin
-          image: contiv/netplugin:__CONTIV_VERSION__
-          args:
-            - -pkubernetes
-            - -x
+        - name: netplugin-exporter
+          image: contiv/stats
           env:
-            - name: VLAN_IF
-              value: __VLAN_IF__
-            - name: VTEP_IP
-              valueFrom:
-                 fieldRef:
-                    fieldPath: status.podIP
             - name: CONTIV_ETCD
               valueFrom:
                 configMapKeyRef:
                   name: contiv-config
-                  key: cluster_store
+                  key: contiv_etcd
+            - name: EXPORTER_MODE
+              value: 'netplugin'
+        - name: contiv-netplugin
+          image: contiv/netplugin:__CONTIV_VERSION__
+          env:
+            - name: CONTIV_ROLE
+              value: netplugin
+            - name: CONTIV_NETPLUGIN_MODE
+              valueFrom:
+                configMapKeyRef:
+                  name: contiv-config
+                  key: contiv_mode
+            - name: CONTIV_NETPLUGIN_VTEP_IP
+              valueFrom:
+                 fieldRef:
+                    fieldPath: status.podIP
+            - name: CONTIV_NETPLUGIN_ETCD_ENDPOINTS
+              valueFrom:
+                configMapKeyRef:
+                  name: contiv-config
+                  key: contiv_etcd
             - name: CONTIV_CNI_CONFIG
               valueFrom:
                 configMapKeyRef:
                   name: contiv-config
-                  key: cni_config
-            - name: CONTIV_CONFIG
+                  key: contiv_cni_config
+            - name: CONTIV_K8S_CONFIG
               valueFrom:
                 configMapKeyRef:
                   name: contiv-config
-                  key: config
+                  key: contiv_k8s_config
+            - name: CONTIV_NETPLUGIN_FORWARD_MODE
+              valueFrom:
+                configMapKeyRef:
+                  name: contiv-config
+                  key: contiv_fwdmode
+            - name: CONTIV_NETPLUGIN_NET_MODE
+              valueFrom:
+                configMapKeyRef:
+                  name: contiv-config
+                  key: contiv_netmode
           securityContext:
             privileged: true
           volumeMounts:
@@ -184,11 +223,8 @@ spec:
             - mountPath: /var/contiv
               name: var-contiv
               readOnly: false
-            - mountPath: /etc/kubernetes/pki
-              name: etc-kubernetes-pki
-              readOnly: false
-            - mountPath: /etc/kubernetes/ssl
-              name: etc-kubernetes-ssl
+            - mountPath: /var/log/contiv
+              name: var-log-contiv
               readOnly: false
             - mountPath: /opt/cni/bin
               name: cni-bin-dir
@@ -210,19 +246,15 @@ spec:
         - name: var-contiv
           hostPath:
             path: /var/contiv
-        - name: etc-kubernetes-pki
-          hostPath:
-            path: /etc/kubernetes/pki
-        - name: etc-kubernetes-ssl
-          hostPath:
-            path: /etc/kubernetes/ssl
-        # Used to install CNI.
         - name: cni-bin-dir
           hostPath:
             path: /opt/cni/bin
         - name: etc-cni-dir
           hostPath:
             path: /etc/cni/net.d/
+        - name: var-log-contiv
+          hostPath:
+            path: /var/log/contiv
 ---
 
 # This manifest deploys the Contiv API Server on Kubernetes.
@@ -244,12 +276,13 @@ spec:
       labels:
         k8s-app: contiv-netmaster
       annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9005'
         scheduler.alpha.kubernetes.io/critical-pod: ''
     spec:
       # The netmaster must run in the host network namespace so that
       # it isn't governed by policy that would prevent it from working.
       hostNetwork: true
-      hostPID: true
       tolerations:
       - key: node-role.kubernetes.io/master
         effect: NoSchedule
@@ -257,112 +290,72 @@ spec:
         node-role.kubernetes.io/master: ""
       serviceAccountName: contiv-netmaster
       containers:
-        - name: contiv-netmaster
-          image: contiv/netplugin:__CONTIV_VERSION__
-          args:
-            - -m
-            - -pkubernetes
+        - name: netmaster-exporter
+          image: contiv/stats
           env:
             - name: CONTIV_ETCD
               valueFrom:
                 configMapKeyRef:
                   name: contiv-config
-                  key: cluster_store
-            - name: CONTIV_CONFIG
+                  key: contiv_etcd
+            - name: EXPORTER_MODE
+              value: 'netmaster'
+        - name: contiv-netmaster
+          image: contiv/netplugin:__CONTIV_VERSION__
+          env:
+            - name: CONTIV_ROLE
+              value: netmaster
+            - name: CONTIV_NETMASTER_MODE
               valueFrom:
                 configMapKeyRef:
                   name: contiv-config
-                  key: config
-          securityContext:
-            privileged: true
+                  key: contiv_mode
+            - name: CONTIV_NETMASTER_ETCD_ENDPOINTS
+              valueFrom:
+                configMapKeyRef:
+                  name: contiv-config
+                  key: contiv_etcd
+            - name: CONTIV_K8S_CONFIG
+              valueFrom:
+                configMapKeyRef:
+                  name: contiv-config
+                  key: contiv_k8s_config
+            - name: CONTIV_NETMASTER_FORWARD_MODE
+              valueFrom:
+                configMapKeyRef:
+                  name: contiv-config
+                  key: contiv_fwdmode
+            - name: CONTIV_NETMASTER_NET_MODE
+              valueFrom:
+                configMapKeyRef:
+                  name: contiv-config
+                  key: contiv_netmode
           volumeMounts:
-            - mountPath: /etc/openvswitch
-              name: etc-openvswitch
-              readOnly: false
-            - mountPath: /lib/modules
-              name: lib-modules
-              readOnly: false
-            - mountPath: /var/run
-              name: var-run
-              readOnly: false
             - mountPath: /var/contiv
               name: var-contiv
               readOnly: false
-            - mountPath: /etc/kubernetes/ssl
-              name: etc-kubernetes-ssl
+            - mountPath: /var/log/contiv
+              name: var-log-contiv
               readOnly: false
-            - mountPath: /opt/cni/bin
-              name: cni-bin-dir
-              readOnly: false
-      volumes:
-        # Used by contiv-netmaster
-        - name: etc-openvswitch
-          hostPath:
-            path: /etc/openvswitch
-        - name: lib-modules
-          hostPath:
-            path: /lib/modules
-        - name: var-run
-          hostPath:
-            path: /var/run
-        - name: var-contiv
-          hostPath:
-            path: /var/contiv
-        - name: etc-kubernetes-ssl
-          hostPath:
-            path: /etc/kubernetes/ssl
-        - name: cni-bin-dir
-          hostPath:
-            path: /opt/cni/bin
----
 
-# This manifest deploys the Contiv API Proxy Server on Kubernetes.
-apiVersion: extensions/v1beta1
-kind: ReplicaSet
-metadata:
-  name: contiv-api-proxy
-  namespace: kube-system
-  labels:
-    k8s-app: contiv-api-proxy
-spec:
-  # The API proxy should have 1, 3, 5 nodes of which one is active at any given time.
-  # More nodes are desired in a production environment for HA.
-  replicas: 1
-  template:
-    metadata:
-      name: contiv-api-proxy
-      namespace: kube-system
-      labels:
-        k8s-app: contiv-api-proxy
-      annotations:
-        scheduler.alpha.kubernetes.io/critical-pod: ''
-    spec:
-      # The API proxy must run in the host network namespace so that
-      # it isn't governed by policy that would prevent it from working.
-      hostNetwork: true
-      hostPID: true
-      tolerations:
-      - key: node-role.kubernetes.io/master
-        effect: NoSchedule
-      nodeSelector:
-        node-role.kubernetes.io/master: ""
-      serviceAccountName: contiv-netmaster
-      containers:
         - name: contiv-api-proxy
-          image: contiv/auth_proxy:__CONTIV_VERSION__
+          image: contiv/auth_proxy:__API_PROXY_VERSION__
           args:
             - --tls-key-file=/var/contiv/auth_proxy_key.pem
             - --tls-certificate=/var/contiv/auth_proxy_cert.pem
-            - --data-store-address=$(CONTIV_ETCD)
-            - --netmaster-address=__NETMASTER_IP__:9999
+            - --data-store-address=$(STORE_URL)
+            - --data-store-driver=$(STORE_DRIVER)
+            - --netmaster-address=localhost:9999
           env:
             - name: NO_NETMASTER_STARTUP_CHECK
               value: "0"
-            - name: CONTIV_ETCD
+            - name: STORE_URL
               valueFrom:
                 configMapKeyRef:
                   name: contiv-config
-                  key: cluster_store
+                  key: contiv_etcd
+            - name: STORE_DRIVER
+              value: etcd
           securityContext:
             privileged: false
           volumeMounts:
@@ -370,9 +363,10 @@ spec:
               name: var-contiv
               readOnly: false
       volumes:
+        # Used by contiv-netmaster
         - name: var-contiv
           hostPath:
             path: /var/contiv
-
----
-
+        - name: var-log-contiv
+          hostPath:
+            path: /var/log/contiv

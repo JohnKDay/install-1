@@ -18,12 +18,9 @@ EOF
 
 setenforce 0
 
-yum install -y ntp
-yum install -y docker ebtables \
-	https://fedorapeople.org/groups/kolla/kubeadm-1.6.0-0.alpha.0.2074.a092d8e0f95f52.x86_64.rpm \
-	https://fedorapeople.org/groups/kolla/kubectl-1.5.4-0.x86_64.rpm \
-	https://fedorapeople.org/groups/kolla/kubelet-1.5.4-0.x86_64.rpm \
-	https://fedorapeople.org/groups/kolla/kubernetes-cni-0.3.0.1-0.07a8a2.x86_64.rpm
+swapoff -a
+
+yum install -y docker kubeadm-1.8.4 kubectl-1.8.4 kubernetes-cni-1.8.4 ntp
 
 systemctl enable docker && systemctl start docker
 systemctl enable kubelet && systemctl start kubelet

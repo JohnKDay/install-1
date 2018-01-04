@@ -9,8 +9,8 @@ fi
 
 yum install -y yum-utils
 yum-config-manager \
-      --add-repo \
-      https://download.docker.com/linux/centos/docker-ce.repo
+	--add-repo \
+	https://download.docker.com/linux/centos/docker-ce.repo
 
 yum makecache fast
 yum -y install docker-ce
@@ -29,5 +29,9 @@ if systemctl -q is-enabled firewalld; then
 	systemctl disable firewalld
 fi
 usermod -a -G docker $SUDO_USER
+
+systemctl stop ntpd
+ntpdate 1.ntp.esl.cisco.com || ntpdate pool.ntp.org
+systemctl start ntpd
 
 exit 0

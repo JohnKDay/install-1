@@ -18,7 +18,8 @@ contiv_v2plugin_install=""
 # Check for docker
 
 if ! docker version >/dev/null 2>&1; then
-	echo "docker not found. Please retry after installing docker."
+	echo "docker not found or is not running."
+	echo "Please ensure docker is installed and running before retrying."
 	exit 1
 fi
 
@@ -33,7 +34,7 @@ Mandatory Options:
 -f   string     Configuration file (cfg.yml) listing the hostnames with the control and data interfaces and optionally ACI parameters
 -e   string     SSH key to connect to the hosts
 -u   string     SSH User
--i              Install the scheduler stack 
+-i              Install the scheduler stack
 -p              Install v2plugin
 
 Additional Options:
@@ -41,6 +42,7 @@ Additional Options:
 -d   string     Forwarding mode (“routing” or “bridge”). Default mode is “bridge”
 -c   string
 -k   string
+-a   string     Additonal ansible arguments such as "-v --ssh-common-args=\"-o ProxyCommand='nc -x 192.168.2.1 %h %p'\""
 
 Advanced Options:
 -v   string     ACI Image (default is contiv/aci-gw:latest). Use this to specify a specific version of the ACI Image.
@@ -50,7 +52,7 @@ Additional parameters can also be updated in install/ansible/env.json file.
 
 Examples:
 
-1. Install Contiv with Docker Swarm on hosts specified by cfg.yml. 
+1. Install Contiv with Docker Swarm on hosts specified by cfg.yml.
 ./install/ansible/install_swarm.sh -f cfg.yml -e ~/ssh_key -u admin -i
 
 2. Install Contiv on hosts specified by cfg.yml. Docker should be pre-installed on the hosts.
@@ -71,53 +73,53 @@ mkdir -p "$src_conf_path"
 cluster_param=""
 while getopts ":f:n:a:e:ipm:d:v:u:c:k:s:" opt; do
 	case $opt in
-		f)
-			cp "$OPTARG" "$host_contiv_config"
-			;;
-		n)
-			netmaster=$OPTARG
-			;;
-		a)
-			ans_opts=$OPTARG
-			;;
-		e)
-			ans_key=$OPTARG
-			;;
-		u)
-			ans_user=$OPTARG
-			;;
-		m)
-			contiv_network_mode=$OPTARG
-			;;
-		d)
-			fwd_mode=$OPTARG
-			;;
-		v)
-			aci_image=$OPTARG
-			;;
-		s)
-			cluster_param="-s $OPTARG"
-			;;
+	f)
+		cp "$OPTARG" "$host_contiv_config"
+		;;
+	n)
+		netmaster=$OPTARG
+		;;
+	a)
+		ans_opts="$OPTARG"
+		;;
+	e)
+		ans_key=$OPTARG
+		;;
+	u)
+		ans_user=$OPTARG
+		;;
+	m)
+		contiv_network_mode=$OPTARG
+		;;
+	d)
+		fwd_mode=$OPTARG
+		;;
+	v)
+		aci_image=$OPTARG
+		;;
+	s)
+		cluster_param="-s $OPTARG"
+		;;
 
-		i)
-			install_scheduler="-i"
-			;;
-		p)
-			v2plugin_param="-p"
-			;;
-		c)
-			cp "$OPTARG" "$host_tls_cert"
-			;;
-		k)
-			cp "$OPTARG" "$host_tls_key"
-			;;
-		:)
-			echo "An argument required for $OPTARG was not passed"
-			usage
-			;;
-		?)
-			usage
-			;;
+	i)
+		install_scheduler="-i"
+		;;
+	p)
+		v2plugin_param="-p"
+		;;
+	c)
+		cp "$OPTARG" "$host_tls_cert"
+		;;
+	k)
+		cp "$OPTARG" "$host_tls_key"
+		;;
+	:)
+		echo "An argument required for $OPTARG was not passed"
+		usage
+		;;
+	?)
+		usage
+		;;
 	esac
 done
 
@@ -144,9 +146,9 @@ if [[ -f $ans_key ]]; then
 fi
 
 if [ "$ans_opts" == "" ]; then
-	ans_opts=" --private-key $def_ans_key -u $ans_user"
+	ans_opts="--private-key $def_ans_key -u $ans_user"
 else
-	ans_opts=$(printf '%q', $ans_opts)" --private-key $def_ans_key -u $ans_user"
+	ans_opts+=" --private-key $def_ans_key -u $ans_user"
 fi
 
 # Generate SSL certs for auth proxy
@@ -160,10 +162,16 @@ if [[ ! -f "$host_tls_cert" || ! -f "$host_tls_key" ]]; then
 fi
 
 echo "Starting the installer container"
-image_name="contiv/install:__CONTIV_INSTALL_VERSION__"
-install_mount="-v $(pwd)/install:/install:Z"
-ansible_mount="-v $(pwd)/ansible:/ansible:Z"
-config_mount="-v $src_conf_path:$container_conf_path:Z"
-cache_mount="-v $(pwd)/contiv_cache:/var/contiv_cache:Z"
-mounts="$install_mount $ansible_mount $cache_mount $config_mount"
-docker run --rm --net=host $mounts $image_name sh -c "./install/ansible/install.sh $netmaster_param -a \"$ans_opts\" $install_scheduler -m $contiv_network_mode -d $fwd_mode $aci_param $cluster_param $v2plugin_param"
+image_name="__CONTIV_INSTALL_VERSION__"
+mounts[0]="-v"
+mounts[1]="$(pwd)/install:/install:Z"
+mounts[2]="-v"
+mounts[3]="$(pwd)/ansible:/ansible:Z"
+mounts[4]="-v"
+mounts[5]="$src_conf_path:$container_conf_path:Z"
+mounts[6]="-v"
+mounts[7]="$(pwd)/contiv_cache:/var/contiv_cache:Z"
+set -x
+docker run --rm --net=host "${mounts[@]}" $image_name ./install/ansible/install.sh \
+	$netmaster_param -a "$ans_opts" $install_scheduler -m $contiv_network_mode \
+	-d $fwd_mode $aci_param $cluster_param $v2plugin_param
